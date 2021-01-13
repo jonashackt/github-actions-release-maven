@@ -70,7 +70,7 @@ Ok it seams, we need to merge this workflow to master/main first - since:
 
 Now it should look like this:
 
-![github-actions-run-first-workflow](screenshots/run-first-workflow.png)
+![github-actions-run-first-workflow](screenshots/manually-trigger-release-workflow.png)
 
 If you let the workflow run by clicking on `run workflow`, it should print out our version:
 
@@ -92,7 +92,7 @@ To create encrypted variables in GitHub Actions, have a look at https://docs.git
 
 We need both `OSS_SONATYPE_USERNAME` and `OSS_SONATYPE_PASSWORD` for the Sonatype Nexus access and also `MAVEN_GPG_PRIVATE_KEY` and `MAVEN_GPG_PASSPHRASE` for the signing of our artifacts that will get uploaded. Therefor head over to the `Settings` tab of your repository and go to `Secrets`. There should be a button `New repository secret`:
 
-![repository-secret](screenshots/repository-secret.png)
+![repository-secrets](screenshots/repository-secrets.png)
 
 If you ask yourself, which `gpg` file you need to use for `MAVEN_GPG_PRIVATE_KEY` have a look at https://central.sonatype.org/pages/working-with-pgp-signatures.html . If you have multiple private keys listed when running `gpg --list-secret-keys`, you need to export the one you chose for signing the Sonatype artifacts only! This could be done with (see https://unix.stackexchange.com/questions/481939/how-to-export-a-gpg-private-key-and-public-key-to-a-file):
 
