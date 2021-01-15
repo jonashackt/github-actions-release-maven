@@ -229,7 +229,7 @@ There are multiple release actions out there. I tried to start with the GitHub d
           prerelease: false
 ```
 
-The `release_name` and `tag_name` use the version number we define through the GitHub Actions workflow UI. Inside the body we add a description of where our newly released `jar` can be downloaded from (Maven Central) and how to embed it into your project.
+The `release_name` and `tag_name` use the version number we define through the GitHub Actions workflow UI. The action also creates a git tag inside our repo for us - so no need to do this ourselves. Inside the body we add a description of where our newly released `jar` can be downloaded from (Maven Central) and how to embed it into your project.
 
 ### Extending the GitHub release with a changelog
 
@@ -402,6 +402,53 @@ Also all your packages regardless which repository they were published from are 
 ![packages-list-organizational-level](screenshots/packages-list-organizational-level.png)
 
 The [docs have even more detailled info on where your packages will be visible](https://docs.github.com/en/free-pro-team@latest/packages/manage-packages/viewing-packages).
+
+
+# Deploy to GitHub Pages
+
+There's this nice action https://github.com/marketplace/actions/deploy-to-github-pages that easily deploys your let's say Asciidoctor generated docs to GitHub Pages. Add the following to your `workflow.yml`:
+
+```yaml
+      - name: Publish SNAPSHOT version to GitHub Packages (we can skip tests, since we only deploy, if the build workflow succeeded)
+        run: # run a build of your docs into the directory 'generated-docs' - there JamesIves/github-pages-deploy-action will pick it up
+
+      - name: Deploy Asciidoc docs output to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: generated-docs # The folder the action should deploy.
+          CLEAN: true # Automatically remove deleted files from the deploy branch
+```
+
+
+If you want to use the Maven `pom.xml`'s current version number, here's an example that uses GitHub Actions [`set-output` variable definition](https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#setting-an-output-parameter) to define the version number later used in the Pages deployment Action:
+
+
+```yaml
+      - name: Publish SNAPSHOT version to GitHub Packages (we can skip tests, since we only deploy, if the build workflow succeeded)
+        run: mvn -B --no-transfer-progress package --projects your-asciidoc-containing-maven-module -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Maven project version for Asciidoc GitHub Pages directory naming
+        run: echo ::set-output name=version::$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+        id: project
+
+      - name: Show extracted Maven project version
+        run: echo ${{ steps.project.outputs.version }}
+
+      - name: Deploy Asciidoc docs output to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: your-asciidoc-containing-maven-module/target/generated-docs # The folder the action should deploy.
+          TARGET_FOLDER: ${{ steps.project.outputs.version }}
+          CLEAN: true # Automatically remove deleted files from the deploy branch
+```
+
+See it in action here: https://github.com/codecentric/spring-boot-admin
 
 ### Links
 
