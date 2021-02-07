@@ -450,6 +450,88 @@ If you want to use the Maven `pom.xml`'s current version number, here's an examp
 
 See it in action here: https://github.com/codecentric/spring-boot-admin
 
+
+
+# Add Coverage reports using codecov.io
+
+If you want to add coverage reports to your repository - for example using https://coveralls.io - then you first need to add an appropriate Plugin to generate the test reports like `jacoco-maven-plugin``. 
+
+I really liked coveralls.io and was using it in many of my OpenSource projects. But sadly the safd doesn't support JaCoCo/Java out-of-the-box atm (see this issue: https://github.com/coverallsapp/github-action/issues/22) and there's no roadmap if it's going to be supported in the near future.
+
+Looking at the cucumber-jvm team I found that they just switched over to https://about.codecov.io/ - so let's do that also!
+
+As we want to create a separate GitHub Actions Job for the Coverage reports, it would be also great to have the coveralls configuration inside a separate Maven profile inside our `pom.xml` like this:
+
+```xml
+        <profile>
+            <id>coverage</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>${build-plugin.jacoco.version}</version>
+                        <executions>
+                            <!-- Prepares the property pointing to the JaCoCo
+                            runtime agent which is passed as VM argument when Maven the Surefire plugin
+                            is executed. -->
+                            <execution>
+                                <id>pre-unit-test</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <!-- Ensures that the code coverage report for
+                            unit tests is created after unit tests have been run. -->
+                            <execution>
+                                <id>post-unit-test</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+```
+
+Now we can create a new GitHub Actions job inside our `build.yml` workflow using the codecov action: https://github.com/codecov/codecov-action
+
+```yaml
+  coverage:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 15
+      - run: mvn -B test -P coverage --no-transfer-progress
+
+      - uses: codecov/codecov-action@v1
+        with:
+          file: ./**/target/site/jacoco/jacoco.xml
+          name: codecov
+```
+
+We only use one Java version here (`15` - since the coverage report should be the same throughout all Java versions). And we explicitely use our `coverage` Maven Profile here specifying it with `mvn -B test -P coverage`. 
+
+Be sure to also add the repository to your codegov orga:
+
+![codegov-add-repo](screenshots/codegov-add-repo.png)
+
+And finally don't forget to add a nice badge to your repo's README like that:
+
+```markdown
+[![codecov](https://codecov.io/gh/codecentric/cxf-spring-boot-starter/branch/master/graph/badge.svg?token=Ntc7Kn0qXz)](https://codecov.io/gh/codecentric/cxf-spring-boot-starter)
+```
+
+You can find the generated badges for you in codegov at https://app.codecov.io/gh/yourOrga/yourRepository/settings/badge
+
+
 ### Links
 
 See manual guide in https://gist.github.com/jonashackt/a09fa064145ff5620c19bc05080378e8
